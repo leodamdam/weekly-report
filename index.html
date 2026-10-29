@@ -18,7 +18,6 @@
   .hint { font-size: 13px; color: #666; margin: 0 0 12px; }
   .btn { width: 100%; padding: 14px; border: 0; border-radius: 10px; font-weight: bold; font-size: 17px; }
   #parseBtn { background: #e8f0fe; color: #1a73e8; }
-  #saveBtn { background: #188038; color: #fff; margin-top: 12px; }
   .btn:disabled { opacity: .5; }
   #header { font-weight: bold; margin: 18px 0 8px; }
   .day { background: #fff; border-radius: 10px; padding: 10px; margin-bottom: 8px; }
@@ -39,12 +38,11 @@
   <button id="mic">🎤 눌러서 말하기</button>
   <textarea id="transcript" placeholder="예) 월요일 김해 백운암에서 신규 사찰광고 촬영, 그리고 사무실에서 본사 줌회의. 수요일은 통도사 문화행사 취재."></textarea>
   <p class="hint">요일을 먼저 말하고 일정을 이어서 말하세요. 마이크 버튼이 안 되면 키보드의 🎤 버튼으로 받아써도 됩니다.</p>
-  <button id="parseBtn" class="btn">정리하기 ↓</button>
+  <button id="parseBtn" class="btn">정리해서 시트에 저장 ↓</button>
 
   <div id="status"></div>
   <div id="header"></div>
   <div id="days"></div>
-  <button id="saveBtn" class="btn" disabled>시트에 저장</button>
 
 <script>
   const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
@@ -64,22 +62,6 @@
     return data.result;
   }
   function store(k, v) { try { v === undefined ? (v = localStorage.getItem(k)) : localStorage.setItem(k, v); } catch (e) {} return v; }
-  // 정리·저장은 비밀번호가 필요. 한 번 맞히면 이 휴대폰에 기억
-  async function callWithPin(fn, ...args) {
-    let pin = store('pin');
-    if (!pin) {
-      pin = prompt('비밀번호 4자리를 입력하세요');
-      if (!pin) throw new Error('비밀번호를 입력해야 정리·저장할 수 있습니다.');
-    }
-    try {
-      const res = await call(fn, ...args, pin);
-      store('pin', pin);
-      return res;
-    } catch (e) {
-      if (/비밀번호가 틀렸/.test(e.message)) store('pin', '');
-      throw e;
-    }
-  }
 
   // 요일 칸 그리기
   DAYS.forEach(day => {
@@ -99,13 +81,11 @@
 
   async function load() {
     status('시트 불러오는 중…');
-    $('saveBtn').disabled = true;
     try {
       const data = await call('getNextWeek', $('tab').value, $('branch').value);
       $('header').textContent = data.header;
       data.days.forEach(d => setDay(d.day, d.temple, d.reason, false));
       status('');
-      $('saveBtn').disabled = false;
     } catch (e) { status(e.message, true); }
   }
 
@@ -180,29 +160,19 @@
     $('parseBtn').disabled = true;
     status(info && info.hasApiKey ? 'AI가 정리하는 중…' : '정리하는 중…');
     try {
-      const res = await callWithPin('parse', text, $('header').textContent);
+      const res = await call('parse', text, $('header').textContent);
       if (!res.days.length) { status('요일을 찾지 못했습니다. "월요일 …"처럼 요일을 넣어 말해 주세요.', true); return; }
       res.days.forEach(d => setDay(d.day, d.temple, d.reason, true));
-      status((res.warning ? res.warning + ' ' : '') + '파란 테두리 요일이 바뀌었습니다. 확인 후 저장하세요.', !!res.warning);
-    } catch (e) { status(e.message, true); }
-    finally { $('parseBtn').disabled = false; }
-  };
-
-  $('saveBtn').onclick = async () => {
-    const branch = $('branch').value, tab = $('tab').value;
-    if (!confirm(tab + ' / ' + branch + ' 차주 일정을 시트에 저장할까요?')) return;
-    $('saveBtn').disabled = true;
-    status('저장 중…');
-    try {
+      // 정리한 결과를 바로 시트에 저장 (말하지 않은 요일은 시트에 있던 내용 그대로)
+      status('시트에 저장하는 중…');
       const days = DAYS.map(day => {
         const box = $('d-' + day);
         return { day: day, temple: box.querySelector('.t').value, reason: box.querySelector('.r').value };
       });
-      await callWithPin('save', tab, branch, days);
-      document.querySelectorAll('.day.changed').forEach(b => b.classList.remove('changed'));
-      status('✅ 저장했습니다.');
+      await call('save', $('tab').value, $('branch').value, days);
+      status((res.warning ? res.warning + ' ' : '') + '✅ 시트에 저장했습니다. 파란 테두리 요일이 바뀐 곳입니다.', !!res.warning);
     } catch (e) { status(e.message, true); }
-    finally { $('saveBtn').disabled = false; }
+    finally { $('parseBtn').disabled = false; }
   };
 </script>
 </body>
