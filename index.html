@@ -37,7 +37,7 @@
 
   <button id="mic">🎤 눌러서 말하기</button>
   <textarea id="transcript" placeholder="예) 월요일 김해 백운암에서 신규 사찰광고 촬영, 그리고 사무실에서 본사 줌회의. 수요일은 통도사 문화행사 취재."></textarea>
-  <p class="hint">요일을 먼저 말하고 일정을 이어서 말하세요. 마이크 버튼이 안 되면 키보드의 🎤 버튼으로 받아써도 됩니다.</p>
+  <p class="hint">요일을 먼저 말하고 일정을 이어서 말하세요. 다 말하고 버튼을 다시 누르면 바로 시트에 저장됩니다.<br>여러 사람이 각자 휴대폰으로 써도 서로 지워지지 않고 아래에 이어서 들어갑니다. 고칠 내용은 시트에서 직접 고쳐 주세요.</p>
   <button id="parseBtn" class="btn">정리해서 시트에 저장 ↓</button>
 
   <div id="status"></div>
@@ -68,7 +68,7 @@
     const box = document.createElement('div');
     box.className = 'day';
     box.id = 'd-' + day;
-    box.innerHTML = '<b></b><textarea class="t" placeholder="방문 사찰"></textarea><textarea class="r" placeholder="사유"></textarea>';
+    box.innerHTML = '<b></b><textarea class="t" placeholder="방문 사찰" readonly></textarea><textarea class="r" placeholder="사유" readonly></textarea>';
     box.querySelector('b').textContent = day + '요일';
     $('days').appendChild(box);
   });
@@ -104,7 +104,7 @@
 
   // 음성 인식 (브라우저 내장)
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let rec = null, recording = false, base = '';
+  let rec = null, recording = false, autoSave = false, base = '';
   // 구글 웹앱 화면은 휴대폰에서 마이크 권한이 막히는 경우가 많음 → 키보드 받아쓰기로 전환하고 기억
   let keyboardMode = !SR || store('keyboardMode') === '1';
   function useKeyboardMode() {
@@ -117,7 +117,7 @@
   if (keyboardMode) useKeyboardMode();
   $('mic').onclick = () => {
     if (keyboardMode) { $('transcript').focus(); return; }
-    if (recording) { recording = false; rec.stop(); return; }
+    if (recording) { recording = false; autoSave = true; rec.stop(); return; }  // 멈추면 바로 정리·저장
     rec = new SR();
     rec.lang = 'ko-KR';
     rec.continuous = true;
@@ -146,11 +146,12 @@
       if (keyboardMode) return;
       $('mic').classList.remove('on');
       $('mic').textContent = '🎤 눌러서 말하기';
+      if (autoSave) { autoSave = false; $('parseBtn').click(); }
     };
     rec.start();
     recording = true;
     $('mic').classList.add('on');
-    $('mic').textContent = '■ 듣는 중… 끝나면 누르세요';
+    $('mic').textContent = '■ 듣는 중… 다 말하면 누르세요 (바로 저장)';
   };
 
   $('parseBtn').onclick = async () => {
@@ -162,15 +163,13 @@
     try {
       const res = await call('parse', text, $('header').textContent);
       if (!res.days.length) { status('요일을 찾지 못했습니다. "월요일 …"처럼 요일을 넣어 말해 주세요.', true); return; }
-      res.days.forEach(d => setDay(d.day, d.temple, d.reason, true));
-      // 정리한 결과를 바로 시트에 저장 (말하지 않은 요일은 시트에 있던 내용 그대로)
+      // 말한 요일에만 이어 쓰기 → 다른 직원이 먼저 쓴 내용까지 포함된 최신 시트 내용을 다시 보여줌
       status('시트에 저장하는 중…');
-      const days = DAYS.map(day => {
-        const box = $('d-' + day);
-        return { day: day, temple: box.querySelector('.t').value, reason: box.querySelector('.r').value };
-      });
-      await call('save', $('tab').value, $('branch').value, days);
-      status((res.warning ? res.warning + ' ' : '') + '✅ 시트에 저장했습니다. 파란 테두리 요일이 바뀐 곳입니다.', !!res.warning);
+      const data = await call('add', $('tab').value, $('branch').value, res.days);
+      const spoken = res.days.map(d => d.day);
+      data.days.forEach(d => setDay(d.day, d.temple, d.reason, spoken.indexOf(d.day) >= 0));
+      $('transcript').value = '';
+      status((res.warning ? res.warning + ' ' : '') + '✅ 시트에 저장했습니다. 파란 테두리 요일에 추가됐습니다.', !!res.warning);
     } catch (e) { status(e.message, true); }
     finally { $('parseBtn').disabled = false; }
   };
