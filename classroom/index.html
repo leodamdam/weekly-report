@@ -687,7 +687,8 @@ logBtn.addEventListener('click',()=>{const m=logEl.classList.toggle('min');logBt
 /* =========================================================
    MULTIPLAYER (room capability — presence only, so every viewer can talk)
    ========================================================= */
-let room=null,online=false,lastSent='',lastSentAt=0,enteredAt=0;
+let room=null,roomState='pending',online=false,lastSent='',lastSentAt=0,enteredAt=0;
+function noteSoloMode(){if(entered&&roomState==='none')addLog('','지금은 혼자 연습 모드예요. 공유받은 Claude 계정으로 로그인해 이 링크를 열면 다른 사람과 함께할 수 있어요.',true);}
 const whoText=document.getElementById('whoText'),netDot=document.getElementById('netDot');
 function updateWho(){
   solo=remotes.size===0;
@@ -726,7 +727,8 @@ function syncPeers(list){
 }
 (async()=>{
   try{if(window.claude&&typeof window.claude.use==='function')room=await window.claude.use('room');}catch(e){room=null;}
-  if(!room){updateWho();return;}
+  roomState=room?'ok':'none';
+  if(!room){updateWho();noteSoloMode();return;}
   updateWho();
   room.onConnection(c=>{online=c;updateWho();if(c)pushPresence(true);},()=>{online=false;updateWho();});
   room.onPeers(ch=>syncPeers(ch.peers),()=>{});
@@ -779,6 +781,7 @@ document.getElementById('nameForm').addEventListener('submit',e=>{
     entered=true;enteredAt=performance.now();
     me.path=findPath(me.x,me.y,DOOR_X,H-44);
     addLog('',`${name}님, BTN 설법학교에 오신 걸 환영해요`,true);
+    noteSoloMode();
     setTimeout(()=>lecturer.say(`${name}님 어서 오세요 🙏`),900);
     setTimeout(()=>document.getElementById('toast').classList.add('hide'),7000);
     pushPresence(true);
