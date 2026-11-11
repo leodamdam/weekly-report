@@ -181,6 +181,7 @@ const TYPES={
   female:{label:'여자',desc:'법우님',pal:{skin:'#f8d8bd',skinDk:'#e6b997',hair:'#7a4a2e',top:'#f08fb0',topDk:'#d36d92',low:'#6f5aa8',leg:'#4a3b5c',shoe:'#3a2c44',ribbon:'#ffd34d'}},
   monk:{label:'스님',desc:'회색 승복',pal:{skin:'#f3cfac',skinDk:'#d9ad86',shine:'#ffe9d4',robe:'#8e8e9c',robeDk:'#74747f',kasa:'#b06b37',sock:'#f2f2f5'}},
   monster:{label:'괴물',desc:'착한 괴물',pal:{body:'#7ccf6b',dk:'#4f9a47',belly:'#c9f2aa',horn:'#fff1b8',eye:'#ffffff',pupil:'#1f1b2b',mouth:'#3a2430'}},
+  teacher:{hidden:true,label:'강사',pal:{skin:'#f3d0ae',skinDk:'#dcb08b',hair:'#26201f',top:'#3a3f5c',topDk:'#2b2f47',low:'#2b2f47',shoe:'#1b1a22'}},
 };
 const TABLES=[],CHAIRS=[];
 const COLS=[40,160,280],ROWS=[98,142,186,230];
@@ -191,7 +192,8 @@ ROWS.forEach((ry,ri)=>COLS.forEach((cx,ci)=>{
 const OBST=[...TABLES.map(t=>({x:t.x,y:t.y,w:t.w,h:t.h})),
   {x:12,y:WALL-2,w:42,h:12},      // TV stand
   {x:266,y:WALL-4,w:28,h:14},     // podium
-  {x:298,y:WALL-2,w:66,h:10}];    // whiteboard stand
+  {x:298,y:WALL-2,w:66,h:10},     // whiteboard stand
+  {x:186,y:84,w:12,h:6}];         // lecturer standing at the front
 function collides(fx,fy){
   const l=fx-4,r=fx+4,t=fy-3,b=fy+1;
   if(l<10||r>W-10||t<WALL+5||b>H-9) return true;
@@ -270,14 +272,15 @@ function drawChar(g,type,fx,fy,dir,wf,seated){
     const top=P.top,topDk=P.topDk;
     if(d==='left'){r(3,8,6,5,top);r(5,9,2,3,topDk);r(5,12,2,1,P.skin);}
     else{r(2,8,8,5,top);r(1,8,1,4,top);r(10,8,1,4,top);r(1,12,1,1,P.skin);r(10,12,1,1,P.skin);
-      if(d==='down'&&type==='male'){r(5,8,2,1,'#ffffff');}}
+      if(d==='down'&&type==='male'){r(5,8,2,1,'#ffffff');}
+      if(d==='down'&&type==='teacher'){r(4,8,4,2,'#ffffff');r(5,8,2,4,'#c84a4a');r(5,8,2,1,'#e46a6a');}}
     if(type==='female'){ if(d==='left')r(3,11,6,2,P.low); else r(2,11,8,2,P.low);}
     else{ if(d==='left')r(3,12,6,1,P.low); else r(2,12,8,1,P.low);}
   }
   // ---- head ----
   r(2,1,8,7,P.skin);
   const eye='#2a2230',blush='#f2a0a6';
-  if(type==='male'){
+  if(type==='male'||type==='teacher'){
     if(d==='down'){r(2,0,8,2,P.hair);r(2,2,1,2,P.hair);r(9,2,1,2,P.hair);r(3,2,4,1,P.hair);}
     else if(d==='up'){r(2,0,8,7,P.hair);}
     else{r(2,0,8,2,P.hair);r(6,2,4,3,P.hair);r(8,5,2,1,P.hair);}
@@ -295,6 +298,7 @@ function drawChar(g,type,fx,fy,dir,wf,seated){
     if(type==='monk'){r(3,5,2,1,eye);r(7,5,2,1,eye);}
     else{r(4,4,1,2,eye);r(7,4,1,2,eye);}
     r(3,6,1,1,blush);r(8,6,1,1,blush);
+    if(type==='teacher'){r(3,3,3,1,eye);r(6,3,3,1,eye);r(6,4,0,0,eye);}
   }else if(d==='left'){
     if(type==='monk')r(2,5,2,1,eye);else r(3,4,1,2,eye);
     r(3,6,1,1,blush);
@@ -406,7 +410,7 @@ class Actor{
 }
 const me=new Actor({name:'',type:'male'});
 const remotes=new Map();
-const lecturer=new Actor({name:'법현 스님',type:'monk',x:254,y:90,dir:'down',npc:true,fixed:true});
+const lecturer=new Actor({name:'강사님',type:'teacher',x:192,y:88,dir:'down',npc:true,fixed:true});
 const npcs=[
   new Actor({name:'민수',type:'male',x:200,y:120,dir:'down',npc:true,wait:1}),
   new Actor({name:'수아',type:'female',x:120,y:200,dir:'down',npc:true,wait:2.5}),
@@ -417,7 +421,7 @@ const NPC_LINES={
   female:['마음이 편안해지는 공간이에요','자리 어디 앉으실래요?','강의 곧 시작해요 🙏','교재 받으셨어요?'],
   monster:['뭉뭉! 나도 법문 들으러 왔어','무섭지 않아요~ 착한 괴물이에요','의자가 폭신폭신해!'],
 };
-const LECTURER_LINES=['어서 오세요, 편한 자리에 앉으세요','잠시 후 강의를 시작하겠습니다','성불하세요 🙏','오늘도 마음 공부 함께해요'];
+const LECTURER_LINES=['어서 오세요, 편한 자리에 앉으세요','잠시 후 강의를 시작하겠습니다','교재는 책상 위에 있습니다','오늘도 마음 공부 함께해요 🙏'];
 const REPLIES=['좋아요!','맞아요 ㅎㅎ','{n}님 반가워요!','저도요!','🙏 합장','오~ 그렇군요'];
 const rnd=a=>a[Math.random()*a.length|0];
 
@@ -707,7 +711,7 @@ function syncPeers(list){
     let a=remotes.get(p.peer);const isNew=!a;
     const x=Number.isFinite(pr.x)?Math.max(0,Math.min(W,pr.x)):DOOR_X,y=Number.isFinite(pr.y)?Math.max(0,Math.min(H,pr.y)):H-14;
     if(!a){a=new Actor({x,y});remotes.set(p.peer,a);if(entered&&performance.now()-enteredAt>2500)addLog('',`${name}님이 강의실에 들어왔어요`,true);}
-    a.name=name;a.type=TYPES[pr.c]?pr.c:'male';a.tx=x;a.ty=y;a.dir=DIRS.includes(pr.d)?pr.d:'down';
+    a.name=name;a.type=TYPES[pr.c]&&!TYPES[pr.c].hidden?pr.c:'male';a.tx=x;a.ty=y;a.dir=DIRS.includes(pr.d)?pr.d:'down';
     const s=Number.isInteger(pr.s)&&pr.s>=0&&pr.s<CHAIRS.length?pr.s:-1;a.seat=s;a.sitAt=Number(pr.st)||0;
     if(s>=0){a.tx=CHAIRS[s].x;a.ty=CHAIRS[s].y;a.dir='up';}
     const say=pr.say;
@@ -747,7 +751,7 @@ const charsEl=document.getElementById('chars'),nameInput=document.getElementById
 let pick=store.get('btn.char');if(!TYPES[pick])pick=null;
 nameInput.value=store.get('btn.name')||'';
 const previews=[];
-Object.entries(TYPES).forEach(([key,t])=>{
+Object.entries(TYPES).filter(([,t])=>!t.hidden).forEach(([key,t])=>{
   const b=document.createElement('button');b.type='button';b.className='char';b.setAttribute('aria-pressed',String(pick===key));
   const c=document.createElement('canvas');c.width=12;c.height=17;
   const l=document.createElement('span');l.textContent=t.label;
