@@ -137,6 +137,8 @@ button{cursor:pointer}
 .ph img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#e4e1ef}
 .ph span{font-family:var(--font-display);font-size:14px;line-height:1.2}
 .ph small{color:#6b6585;font-size:11px}
+.gal-share{margin:0;padding:14px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;background:#3a3354;border-bottom:4px solid var(--line);font-size:14px;line-height:1.5}
+.gal-share a{text-decoration:none}
 .gal-empty{margin:0;padding:34px 16px;text-align:center;color:var(--muted)}
 .gal-note{margin:0;padding:10px 14px;border-top:4px solid var(--line);color:var(--muted);font-size:12px}
 .viewer{position:absolute;inset:0;background:rgba(14,12,24,.96);display:flex;align-items:center;justify-content:center;gap:10px;
@@ -217,6 +219,10 @@ button{cursor:pointer}
         <h3 id="galTitle">칠판 사진첩</h3><span id="galCount"></span>
         <button class="pxbtn" id="galUpload" type="button">📷 사진 올리기</button>
         <button class="gal-x" id="galClose" type="button" aria-label="사진첩 닫기">✕</button>
+      </div>
+      <div class="gal-share" id="galShare" hidden>
+        <span>이 Claude 링크에서는 사진이 다른 사람에게 전달되지 않아요. 내 사진과 다른 사람 사진을 함께 보려면 <b>함께 쓰는 강의실</b>(문 앞 QR 주소)에서 올려 주세요.</span>
+        <a class="pxbtn" id="openShared" href="https://leodamdam.github.io/weekly-report/classroom/" target="_blank" rel="noopener">함께 쓰는 강의실 열기</a>
       </div>
       <div class="gal-grid" id="galGrid"></div>
       <p class="gal-empty" id="galEmpty">아직 칠판이 비어 있어요. 첫 사진을 붙여 보세요!</p>
@@ -891,7 +897,11 @@ async function shrinkPhoto(file){
   throw new Error('too_big');
 }
 const photoInput=document.getElementById('photoInput');
+const IN_CLAUDE=!!(window.claude&&typeof window.claude.use==='function');
+if(IN_CLAUDE){document.getElementById('galShare').hidden=false;document.getElementById('galUpload').hidden=true;document.getElementById('galNote').hidden=true;
+  document.getElementById('galEmpty').textContent='Claude 링크에서는 사진첩을 함께 쓸 수 없어요.';}
 function pickPhoto(){
+  if(IN_CLAUDE){openGallery();return;}
   const mine=[...photos.keys()].filter(k=>myPhotoIds.has(k)).length;
   if(mine>=MY_MAX){addLog('',`사진은 한 사람당 ${MY_MAX}장까지 붙일 수 있어요. 사진첩에서 내 사진을 내린 뒤 올려 주세요.`,true);return;}
   photoInput.click();
