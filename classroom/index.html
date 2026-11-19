@@ -26,6 +26,7 @@
   --font-body:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-ui,sans-serif;
   color-scheme:dark;
 }
+[hidden]{display:none!important}
 html,body{height:100%}
 body{background:var(--ink);color:var(--paper);font-family:var(--font-body);overflow:hidden;-webkit-tap-highlight-color:transparent}
 button,input{font:inherit}
@@ -120,6 +121,34 @@ button{cursor:pointer}
 .quick{display:flex;gap:8px;flex:0 0 auto;margin-left:auto}
 #sitBtn{min-width:112px}
 @media (max-width:560px){.quick{width:100%;margin-left:0}.quick #sitBtn{flex:1}}
+/* ---------- board photo album ---------- */
+.gallery{position:fixed;inset:0;z-index:50;background:rgba(14,12,24,.84);display:flex;align-items:center;justify-content:center;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(16px + env(safe-area-inset-top,0px)) calc(16px + env(safe-area-inset-bottom,0px))}
+.gal-box{width:min(780px,100%);max-height:100%;display:flex;flex-direction:column;background:var(--panel);border:4px solid var(--line);box-shadow:0 0 0 4px var(--ink),8px 8px 0 4px rgba(0,0,0,.35);min-height:0}
+.gal-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:4px solid var(--line);flex-wrap:wrap}
+.gal-head h3{margin:0;font-family:var(--font-display);font-weight:400;font-size:21px}
+.gal-head #galCount{color:var(--muted);font-size:13px;margin-right:auto}
+.gal-head .pxbtn{font-size:15px;padding:7px 12px}
+.gal-x{width:40px;height:40px;background:transparent;color:var(--paper);border:3px solid var(--line);font-size:18px}
+.gal-grid{overflow-y:auto;padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;min-height:0}
+.ph{background:#fffdf6;padding:6px 6px 8px;border:0;display:flex;flex-direction:column;gap:5px;color:var(--ink);text-align:left;box-shadow:4px 4px 0 rgba(0,0,0,.35);position:relative}
+.ph:nth-child(odd){transform:rotate(-1.2deg)}.ph:nth-child(even){transform:rotate(1deg)}
+.ph::before{content:"";position:absolute;top:-6px;left:50%;width:34px;height:12px;margin-left:-17px;background:rgba(255,213,120,.75)}
+.ph img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#e4e1ef}
+.ph span{font-family:var(--font-display);font-size:14px;line-height:1.2}
+.ph small{color:#6b6585;font-size:11px}
+.gal-empty{margin:0;padding:34px 16px;text-align:center;color:var(--muted)}
+.gal-note{margin:0;padding:10px 14px;border-top:4px solid var(--line);color:var(--muted);font-size:12px}
+.viewer{position:absolute;inset:0;background:rgba(14,12,24,.96);display:flex;align-items:center;justify-content:center;gap:10px;
+  padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(84px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.viewer figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0;max-width:100%;max-height:100%}
+.viewer img{max-width:100%;max-height:calc(100vh - 190px);object-fit:contain;border:8px solid #fffdf6;background:#fffdf6;box-shadow:6px 6px 0 rgba(0,0,0,.4)}
+.viewer figcaption{font-family:var(--font-display);font-size:17px;text-align:center}
+.viewer figcaption small{display:block;font-family:var(--font-body);font-size:12px;color:var(--muted);margin-top:2px}
+.nav{flex:0 0 auto;width:46px;height:68px;font-size:34px;line-height:1;background:rgba(255,255,255,.08);color:var(--paper);border:3px solid var(--line)}
+.nav:disabled{opacity:.25;cursor:default}
+.vbar{position:absolute;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:10px}
+@media (max-width:560px){.nav{position:absolute;top:42%;z-index:1}.nav.prev{left:6px}.nav.next{right:6px}}
 @media (prefers-reduced-motion:reduce){.leaf{transition:none}.scene{transition:none}}
 </style>
 
@@ -167,7 +196,7 @@ button{cursor:pointer}
   <div id="stage">
     <canvas id="view"></canvas>
     <div class="log min" id="log" aria-live="polite"></div>
-    <div class="toast" id="toast">방향키·WASD 또는 화면을 눌러 이동해요. 빈 의자를 누르면 가서 앉아요.</div>
+    <div class="toast" id="toast">방향키·WASD 또는 화면을 눌러 이동해요. 빈 의자를 누르면 앉고, 칠판을 누르면 사진첩이 열려요.</div>
   </div>
   <div class="controls">
     <form id="chatForm">
@@ -176,8 +205,31 @@ button{cursor:pointer}
     </form>
     <div class="quick">
       <button class="pxbtn ghost" id="bowBtn" type="button" title="합장 인사">🙏</button>
+      <button class="pxbtn ghost" id="photoBtn" type="button" title="사진 올리기" aria-label="사진 올리기">📷</button>
       <button class="pxbtn ghost" id="logBtn" type="button" title="대화 기록 펼치기">기록</button>
       <button class="pxbtn" id="sitBtn" type="button" disabled>자리에 앉기</button>
+    </div>
+  </div>
+  <input type="file" id="photoInput" accept="image/*" hidden>
+  <div class="gallery" id="gallery" role="dialog" aria-modal="true" aria-labelledby="galTitle" hidden>
+    <div class="gal-box">
+      <div class="gal-head">
+        <h3 id="galTitle">칠판 사진첩</h3><span id="galCount"></span>
+        <button class="pxbtn" id="galUpload" type="button">📷 사진 올리기</button>
+        <button class="gal-x" id="galClose" type="button" aria-label="사진첩 닫기">✕</button>
+      </div>
+      <div class="gal-grid" id="galGrid"></div>
+      <p class="gal-empty" id="galEmpty">아직 칠판이 비어 있어요. 첫 사진을 붙여 보세요!</p>
+      <p class="gal-note" id="galNote">올린 사진은 이 강의실에 들어온 모든 사람에게 보여요.</p>
+    </div>
+    <div class="viewer" id="viewer" hidden>
+      <button class="nav prev" id="vPrev" type="button" aria-label="이전 사진">‹</button>
+      <figure><img id="vImg" alt=""><figcaption id="vCap"></figcaption></figure>
+      <button class="nav next" id="vNext" type="button" aria-label="다음 사진">›</button>
+      <div class="vbar">
+        <button class="pxbtn ghost" id="vDel" type="button" hidden>내 사진 내리기</button>
+        <button class="pxbtn" id="vBack" type="button">목록으로</button>
+      </div>
     </div>
   </div>
 </main>
@@ -475,6 +527,7 @@ const keys=new Set();
 const chatInput=document.getElementById('chatInput');
 addEventListener('keydown',e=>{
   if(!entered)return;
+  if(!galleryEl.hidden){galleryKey(e);return;}
   if(document.activeElement===chatInput){if(e.key==='Escape')chatInput.blur();return;}
   const k=e.key.toLowerCase();
   if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){keys.add(k);e.preventDefault();}
@@ -540,6 +593,7 @@ function drawOverlay(owners){
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillStyle='#4a3a8c';ctx.font=`${Math.max(9,7*S)}px ${FONT}`;ctx.fillText('BTN 설법학교',sx+sw/2,sy+sh*.38);
   ctx.fillStyle='#8a7fb8';ctx.font=`${Math.max(7,4.2*S)}px ${FONT}`;ctx.fillText('오늘의 법문 · 마음 공부',sx+sw/2,sy+sh*.72);
+  drawBoardPhotos();
   const now=performance.now();
   for(const a of visibleActors()){
     const seated=a.seat>=0&&owners.get(a.seat)===a;
@@ -651,6 +705,7 @@ view.addEventListener('pointerdown',e=>{
   if(!entered)return;
   const rect=view.getBoundingClientRect();
   const wx=(e.clientX-rect.left-offX)/S,wy=(e.clientY-rect.top-offY)/S;
+  if(wx>=BOARD.x-2&&wx<=BOARD.x+BOARD.w+2&&wy>=BOARD.y-3&&wy<=BOARD.y+BOARD.h+4){boardClick(wx,wy);return;}
   const owners=seatOwner();
   let ci=-1,bd=10;
   CHAIRS.forEach((c,i)=>{const dd=Math.hypot(c.x-wx,c.y-4-wy);if(dd<bd&&(!owners.has(i)||owners.get(i)===me)){bd=dd;ci=i;}});
@@ -744,6 +799,7 @@ function syncPeers(list){
 const BROKER=(()=>{try{const b=new URLSearchParams(location.search).get('broker');if(b&&/^wss?:\/\//.test(b))return b;}catch(e){}return 'wss://broker.emqx.io:8084/mqtt';})();
 const MQTT_LIB='https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js';
 const TOPIC='btn-seolbeop/classroom1/v1/p/';
+const PHOTO_TOPIC='btn-seolbeop/classroom1/v1/ph/';
 function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.append(s);});}
 async function openTransport(){
   if(!window.mqtt)await loadScript(MQTT_LIB);
@@ -753,9 +809,12 @@ async function openTransport(){
   const peers=new Map();let onP=()=>{},onC=()=>{},mine=null,lastPub=0;
   const emit=()=>onP({peers:[...peers].map(([k,v])=>({peer:k,isMe:false,sameTab:false,kind:'viewer',guest:false,by:null,presence:v.p}))});
   const pub=()=>{if(!mine||!client.connected)return;lastPub=Date.now();client.publish(TOPIC+id,JSON.stringify(mine),{retain:true,qos:0});};
-  client.on('connect',()=>{client.subscribe(TOPIC+'+');onC(true);pub();});
+  let onPh=()=>{};
+  client.on('connect',()=>{client.subscribe([TOPIC+'+',PHOTO_TOPIC+'+']);photoBacklogUntil=performance.now()+4000;onC(true);pub();});
   client.on('close',()=>onC(false));
   client.on('message',(topic,buf)=>{
+    if(topic.startsWith(PHOTO_TOPIC)){onPh(topic.slice(PHOTO_TOPIC.length),buf.toString());return;}
+    if(!topic.startsWith(TOPIC))return;
     const pid=topic.slice(TOPIC.length);if(!pid||pid===id)return;
     const s=buf.toString();
     if(!s){if(peers.delete(pid))emit();return;}
@@ -767,7 +826,13 @@ async function openTransport(){
     if(ch)emit();if(now-lastPub>5000)pub();},2000);
   const bye=()=>{try{if(client.connected)client.publish(TOPIC+id,'',{retain:true,qos:0});client.end(false);}catch(e){}};
   addEventListener('pagehide',bye);
+  const pubPhoto=(pid,payload)=>new Promise((ok,no)=>{
+    const t=setTimeout(()=>no(new Error('timeout')),20000);
+    client.publish(PHOTO_TOPIC+pid,payload,{retain:true,qos:1},err=>{clearTimeout(t);err?no(err):ok();});});
   return {kind:'open',
+    sharePhoto(pid,data){return pubPhoto(pid,JSON.stringify(data));},
+    deletePhoto(pid){return pubPhoto(pid,'');},
+    onPhoto(f){onPh=f;},
     presence(p){mine=p;pub();return Promise.resolve();},
     onPeers(f){onP=f;},
     onConnection(f){onC=f;setTimeout(()=>f(client.connected),0);}};
@@ -780,12 +845,163 @@ async function openTransport(){
   updateWho();
   room.onConnection(c=>{online=c;updateWho();if(c)pushPresence(true);},()=>{online=false;updateWho();});
   room.onPeers(ch=>syncPeers(ch.peers),()=>{});
+  if(room.onPhoto)room.onPhoto(receivePhoto);
 })();
+
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+/* =========================================================
+   BOARD PHOTOS — shrink on the phone, pin to the whiteboard, open the album
+   ========================================================= */
+const BOARD={x:302,y:20,w:60,h:32};
+const PHOTO_LIMIT=190000,PHOTO_KEEP=60,MY_MAX=10;
+const photos=new Map();
+let photoBacklogUntil=0;
+const myKey=(()=>{let k=store.get('btn.key');if(!k||!/^[a-z0-9]{6,20}$/.test(k)){k=Math.random().toString(36).slice(2,12);store.set('btn.key',k);}return k;})();
+const myPhotoIds=new Set((()=>{try{return JSON.parse(store.get('btn.myphotos')||'[]')}catch(e){return []}})());
+const saveMine=()=>store.set('btn.myphotos',JSON.stringify([...myPhotoIds].slice(-50)));
+const DATA_RE=/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+const sortedPhotos=()=>[...photos.values()].sort((a,b)=>b.ts-a.ts);
+function addPhoto(pid,data,fromNet){
+  if(typeof data.d!=='string'||data.d.length>400000||!DATA_RE.test(data.d))return;
+  const prev=photos.get(pid);if(prev&&prev.d===data.d)return;
+  const img=new Image();img.decoding='async';img.src=data.d;
+  const p={id:pid,n:clean(data.n,10)||'누군가',ts:Number(data.ts)||Date.now(),d:data.d,img};
+  photos.set(pid,p);
+  if(!prev&&fromNet&&!myPhotoIds.has(pid)&&entered&&performance.now()>photoBacklogUntil)addLog('',`${p.n}님이 칠판에 사진을 붙였어요 · 칠판을 눌러 보세요`,true);
+  if(photos.size>PHOTO_KEEP)sortedPhotos().slice(PHOTO_KEEP).forEach(o=>photos.delete(o.id));
+  renderGallery();
+}
+function removePhoto(pid){if(photos.delete(pid))renderGallery();}
+function receivePhoto(pid,s){
+  if(!/^[a-z0-9-]{4,40}$/.test(pid))return;
+  if(!s){removePhoto(pid);return;}
+  try{const d=JSON.parse(s);if(d&&typeof d==='object')addPhoto(pid,d,true);}catch(e){}
+}
+async function shrinkPhoto(file){
+  let src;
+  try{src=await createImageBitmap(file,{imageOrientation:'from-image'});}
+  catch(e){src=await new Promise((ok,no)=>{const im=new Image();im.onload=()=>ok(im);im.onerror=no;im.src=URL.createObjectURL(file);});}
+  const w0=src.width,h0=src.height;if(!w0||!h0)throw new Error('empty');
+  for(const side of [1024,820,640,480]){
+    const k=Math.min(1,side/Math.max(w0,h0));const c=document.createElement('canvas');
+    c.width=Math.max(1,Math.round(w0*k));c.height=Math.max(1,Math.round(h0*k));
+    const g=c.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,c.width,c.height);g.drawImage(src,0,0,c.width,c.height);
+    for(const q of [.82,.7,.58,.46]){const d=c.toDataURL('image/jpeg',q);if(d.length<=PHOTO_LIMIT)return d;}
+  }
+  throw new Error('too_big');
+}
+const photoInput=document.getElementById('photoInput');
+function pickPhoto(){
+  const mine=[...photos.keys()].filter(k=>myPhotoIds.has(k)).length;
+  if(mine>=MY_MAX){addLog('',`사진은 한 사람당 ${MY_MAX}장까지 붙일 수 있어요. 사진첩에서 내 사진을 내린 뒤 올려 주세요.`,true);return;}
+  photoInput.click();
+}
+document.getElementById('photoBtn').addEventListener('click',pickPhoto);
+document.getElementById('galUpload').addEventListener('click',pickPhoto);
+photoInput.addEventListener('change',async()=>{
+  const f=photoInput.files&&photoInput.files[0];photoInput.value='';if(!f)return;
+  if(f.type&&!/^image\//.test(f.type)){addLog('','사진 파일만 올릴 수 있어요',true);return;}
+  addLog('','사진을 칠판에 붙이는 중…',true);
+  let d;
+  try{d=await shrinkPhoto(f);}catch(e){addLog('','이 사진은 열 수 없어요. 다른 사진으로 다시 시도해 주세요.',true);return;}
+  const pid=myKey+'-'+Date.now().toString(36);
+  const data={n:me.name,ts:Date.now(),d};
+  myPhotoIds.add(pid);saveMine();addPhoto(pid,data,false);
+  if(room&&room.sharePhoto){
+    try{await room.sharePhoto(pid,data);speak('📷 칠판에 사진을 붙였어요');}
+    catch(e){removePhoto(pid);myPhotoIds.delete(pid);saveMine();addLog('','사진을 보내지 못했어요. 연결을 확인하고 다시 올려 주세요.',true);}
+  }else addLog('','지금은 이 화면에서만 보이는 사진이에요. QR 주소로 들어오면 모두와 함께 볼 수 있어요.',true);
+});
+function drawBoardPhotos(){
+  const list=sortedPhotos();const bx=offX+BOARD.x*S,by=offY+BOARD.y*S,bw=BOARD.w*S,bh=BOARD.h*S;
+  if(bx>cssW||by>cssH||bx+bw<0||by+bh<0)return;
+  if(!list.length){
+    ctx.fillStyle='rgba(90,84,130,.75)';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font=`${Math.max(9,Math.min(13,4.6*S))}px ${FONT}`;ctx.fillText('📷 사진을 붙여 주세요',bx+bw/2,by+bh/2);return;
+  }
+  const cols=3,rows=2,gap=Math.max(2,1.6*S),cw=(bw-gap*(cols+1))/cols,ch=(bh-gap*(rows+1))/rows;
+  ctx.imageSmoothingEnabled=true;
+  list.slice(0,cols*rows).forEach((p,i)=>{
+    const x=bx+gap+(i%cols)*(cw+gap),y=by+gap+Math.floor(i/cols)*(ch+gap);
+    ctx.fillStyle='#ffffff';ctx.fillRect(x,y,cw,ch);
+    const pad=Math.max(1,S*.7),iw=cw-pad*2,ih=ch-pad*2,im=p.img;
+    if(im.complete&&im.naturalWidth){
+      const r=Math.max(iw/im.naturalWidth,ih/im.naturalHeight),sw=iw/r,sh=ih/r;
+      ctx.drawImage(im,(im.naturalWidth-sw)/2,(im.naturalHeight-sh)/2,sw,sh,x+pad,y+pad,iw,ih);
+    }else{ctx.fillStyle='#e4e1ef';ctx.fillRect(x+pad,y+pad,iw,ih);}
+    ctx.fillStyle='rgba(255,205,110,.85)';ctx.fillRect(x+cw/2-cw*.18,y-Math.max(1,S*.6),cw*.36,Math.max(2,S*1.3));
+    if(i===cols*rows-1&&list.length>cols*rows){
+      ctx.fillStyle='rgba(29,26,44,.72)';ctx.fillRect(x,y,cw,ch);
+      ctx.fillStyle='#ffffff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=`${Math.max(10,5*S)}px ${FONT}`;
+      ctx.fillText('+'+(list.length-cols*rows+1),x+cw/2,y+ch/2);
+    }
+  });
+  ctx.imageSmoothingEnabled=false;
+}
+function boardClick(wx,wy){
+  const list=sortedPhotos();
+  const cols=3,rows=2,c=Math.floor((wx-BOARD.x)/(BOARD.w/cols)),r=Math.floor((wy-BOARD.y)/(BOARD.h/rows));
+  const i=Math.max(0,Math.min(cols-1,c))+Math.max(0,Math.min(rows-1,r))*cols;
+  openGallery();
+  if(list[i]&&!(i===cols*rows-1&&list.length>cols*rows))openViewer(i);
+}
+/* ---- album + viewer ---- */
+const galleryEl=document.getElementById('gallery'),galGrid=document.getElementById('galGrid'),galEmpty=document.getElementById('galEmpty');
+const viewerEl=document.getElementById('viewer'),vImg=document.getElementById('vImg'),vCap=document.getElementById('vCap'),vDel=document.getElementById('vDel');
+const vPrev=document.getElementById('vPrev'),vNext=document.getElementById('vNext');
+let vIndex=-1,vId=null;
+const fmtTime=ts=>{try{return new Date(ts).toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'})}catch(e){return ''}};
+function renderGallery(){
+  const list=sortedPhotos();
+  document.getElementById('galCount').textContent=list.length?`${list.length}장`:'';
+  galEmpty.hidden=list.length>0;
+  galGrid.replaceChildren(...list.map((p,i)=>{
+    const b=document.createElement('button');b.type='button';b.className='ph';
+    const im=document.createElement('img');im.src=p.d;im.alt=`${p.n}님이 올린 사진`;im.loading='lazy';
+    const s=document.createElement('span');s.textContent=myPhotoIds.has(p.id)?p.n+' (나)':p.n;
+    const t=document.createElement('small');t.textContent=fmtTime(p.ts);
+    b.append(im,s,t);b.addEventListener('click',()=>openViewer(i));return b;
+  }));
+  if(!viewerEl.hidden){
+    const i=list.findIndex(p=>p.id===vId);
+    if(i<0){viewerEl.hidden=true;vId=null;}else showViewer(i);
+  }
+}
+function openGallery(){renderGallery();galleryEl.hidden=false;keys.clear();document.getElementById('galClose').focus();}
+function closeGallery(){galleryEl.hidden=true;viewerEl.hidden=true;vId=null;}
+function showViewer(i){
+  const list=sortedPhotos();if(!list.length){viewerEl.hidden=true;return;}
+  vIndex=(i+list.length)%list.length;const p=list[vIndex];vId=p.id;
+  vImg.src=p.d;vImg.alt=`${p.n}님이 올린 사진`;
+  vCap.replaceChildren(document.createTextNode(`${p.n}님의 사진`));
+  const sm=document.createElement('small');sm.textContent=`${fmtTime(p.ts)} · ${vIndex+1} / ${list.length}`;vCap.append(sm);
+  vDel.hidden=!myPhotoIds.has(p.id);
+  vPrev.disabled=vNext.disabled=list.length<2;
+}
+function openViewer(i){viewerEl.hidden=false;showViewer(i);}
+vPrev.addEventListener('click',()=>showViewer(vIndex-1));
+vNext.addEventListener('click',()=>showViewer(vIndex+1));
+document.getElementById('vBack').addEventListener('click',()=>{viewerEl.hidden=true;vId=null;});
+document.getElementById('galClose').addEventListener('click',closeGallery);
+galleryEl.addEventListener('click',e=>{if(e.target===galleryEl)closeGallery();});
+vDel.addEventListener('click',async()=>{
+  const pid=vId;if(!pid||!myPhotoIds.has(pid))return;
+  removePhoto(pid);myPhotoIds.delete(pid);saveMine();
+  if(room&&room.deletePhoto){try{await room.deletePhoto(pid);}catch(e){addLog('','사진을 내리지 못했어요. 연결을 확인해 주세요.',true);}}
+});
+let swipeX=null;
+viewerEl.addEventListener('pointerdown',e=>{swipeX=e.clientX;});
+viewerEl.addEventListener('pointerup',e=>{if(swipeX==null)return;const dx=e.clientX-swipeX;swipeX=null;if(Math.abs(dx)>50&&e.target===vImg)showViewer(vIndex+(dx<0?1:-1));});
+function galleryKey(e){
+  if(e.key==='Escape'){viewerEl.hidden?closeGallery():(viewerEl.hidden=true,vId=null);e.preventDefault();}
+  else if(!viewerEl.hidden&&e.key==='ArrowLeft'){showViewer(vIndex-1);e.preventDefault();}
+  else if(!viewerEl.hidden&&e.key==='ArrowRight'){showViewer(vIndex+1);e.preventDefault();}
+}
+renderGallery();
 
 /* =========================================================
    SCENES: door → select → classroom
    ========================================================= */
-const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 const doorScene=document.getElementById('doorScene'),selectScene=document.getElementById('selectScene');
 let opened=false;
 function openDoor(){
